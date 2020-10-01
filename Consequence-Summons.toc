@@ -1,0 +1,8 @@
+## Interface: 11302
+
+## Title: Consequence-Summons
+## Notes: Consequence Warlock Summon Helper
+## Author: Zyrrael
+## Version: 0.02
+## SavedVariables: ConsSummon1
+Core.lua
