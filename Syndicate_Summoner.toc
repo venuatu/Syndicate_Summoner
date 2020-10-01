@@ -1,6 +1,6 @@
 ## Interface: 11305
 
-## Title: Syndicate-Summoner
+## Title: Syndicate_Summoner
 ## Notes: Warlock Summon Helper
 ## Author: Pawthorn / Zyrrael (Consequence-Summons)
 ## Version: 1.0.0
