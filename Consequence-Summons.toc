@@ -1,8 +1,8 @@
-## Interface: 11302
+## Interface: 11305
 
-## Title: Consequence-Summons
-## Notes: Consequence Warlock Summon Helper
-## Author: Zyrrael
-## Version: 0.02
-## SavedVariables: ConsSummon1
+## Title: Syndicate-Summoner
+## Notes: Warlock Summon Helper
+## Author: Pawthorn / Zyrrael (Consequence-Summons)
+## Version: 1.0.0
+## SavedVariables: SynSummon1
 Core.lua
