@@ -12,12 +12,17 @@ SynSummoner.BakedWords = {
 }
 SynSummoner.TriggerWords = { }
 SynSummoner.ZoneWords = {
-	['Westfall'] = {'wf', 'sent', 'sentinelhill'},
-	['Dire Maul'] = {'dm', 'dmt', 'trib', 'tribute', 'diremaul',},
-	['Booty Bay'] = {'bb', 'bootybay', 'stv',},
-	['Felwood'] = {'fel', 'sf', 'songflower', 'song',},
-	['Gates of Ahn\'Qiraj'] = {'aq', 'aq40', 'aq20', 'ahnqiraj', 'sili'},
+    ['Booty Bay'] = {'bb', 'bootybay', 'stv',},
+    ['Dire Maul'] = {'dm', 'dmt', 'trib', 'tribute', 'diremaul',},
+    ['Felwood'] = {'fel', 'sf', 'songflower', 'song',},
+    ['Gates of Ahn\'Qiraj'] = {'aq', 'aq40', 'aq20', 'ahnqiraj', 'sili'},
+    ['Orgrimmar'] = {'org'},
+    ['Stormwind'] = {'sw'},
+    ['Plaguewood'] = {'epl', 'nax', 'naxx', 'naxxramas', 'pl'},
+    ['Westfall'] = {'wf', 'sent', 'sentinelhill'},
 }
+SynSummoner.MESSAGE_PREFIX = "synsum"
+SynSummoner.MESSAGE_INV_TEXT = "syndicate is the best"
 function SynSummoner.MakeFrame()
 	SynSummoner.LootFrame = {}
 	SynSummoner.LootFrame = CreateFrame("frame", "SynSummonerLootFrame", UIParent)
@@ -253,7 +258,10 @@ function SynSummoner:SendMessageGroup(...)
 		print(words)
 	end
 end
-function SynSummoner:NotifySummon()
+function SynSummoner:NotifySummon(name)
+	if not self:UnitInGroup(name) then
+		InviteUnit(name)
+	end
 	SynSummoner:SendMessageGroup(SynSummon1.Message)
 end
 function SynSummoner.CheckRaid()
@@ -264,19 +272,31 @@ function SynSummoner.CheckRaid()
 	end
 	SynSummoner.LootFrame.TopGuildFrame.Button2:Enable()
 	if (SynSummoner.whotosummon) then
-		local derpz = 0
-		for AAPC_Name,AAPC_Lootz in SynSummoner.pairsByKeys(SynSummoner.whotosummon) do
-			derpz = derpz + 1
-			SynSummoner.LootFrame.TopGuildFrame[derpz].Button:SetText(AAPC_Name)
-			SynSummoner.LootFrame.TopGuildFrame[derpz].Button:Show()
-			SynSummoner.LootFrame.TopGuildFrame[derpz].Time["FS"]:SetText(string.format(SecondsToTime(AAPC_Lootz)))
-			local strwd = SynSummoner.LootFrame.TopGuildFrame[derpz].Time["FS"]:GetStringWidth()
-			SynSummoner.LootFrame.TopGuildFrame[derpz].Time:SetWidth(strwd+10)
-			SynSummoner.LootFrame.TopGuildFrame[derpz].Time:Show()
-			SynSummoner.LootFrame.TopGuildFrame[derpz].Button:SetAttribute("type1", "macro");
-			SynSummoner.LootFrame.TopGuildFrame[derpz].Button:SetAttribute("macrotext", "/target "..AAPC_Name.." \n/script SynSummoner:NotifySummon()\n/cast Ritual of Summoning")
+		local count = 0
+		local now = GetTime()
+		local times = {}
+		local names_by_times = {}
+		for name, dur in pairs(SynSummoner.whotosummon) do
+			table.insert(times, dur)
+			names_by_times[dur] = name
 		end
-		SynSummoner.LootFrame["TopGuildFrame"]:SetHeight(20+derpz*25)
+		table.sort(times)
+
+		for _, start in ipairs(times) do
+			local name = names_by_times[start]
+			local elapsed = now - start
+			count = count + 1
+			local frame = SynSummoner.LootFrame.TopGuildFrame[count]
+			frame.Button:SetText(name)
+			frame.Button:Show()
+			frame.Time["FS"]:SetText(string.format(SecondsToTime(elapsed)))
+			local strwd = frame.Time["FS"]:GetStringWidth()
+			frame.Time:SetWidth(strwd+10)
+			frame.Time:Show()
+			frame.Button:SetAttribute("type1", "macro");
+			frame.Button:SetAttribute("macrotext", "/target "..name.."\n/script SynSummoner:NotifySummon('"..name.."')\n/cast Ritual of Summoning")
+		end
+		SynSummoner.LootFrame["TopGuildFrame"]:SetHeight(20+count*25)
 		SynSummoner.LootFrame:Show()
 	else
 		SynSummoner.LootFrame:Hide()
@@ -320,28 +340,104 @@ end
 function SynSummoner:GuildSpam(forced)
 	local words = {}
 	local found = false
-	SynSummoner.TriggerWords = {}
+	self.TriggerWords = {}
 	for _, x in ipairs({GetSubZoneText(), GetZoneText()}) do
-		for _, y in ipairs(SynSummoner.ZoneWords[x] or {}) do
-			SynSummoner.TriggerWords[y] = 1
-			table.insert(words, y)
-			found = true
+		for _, y in ipairs(self.ZoneWords[x] or {}) do
+			if not self.TriggerWords[y] then
+				self.TriggerWords[y] = 1
+				table.insert(words, y)
+				found = true
+			end
 		end
-		for _, y in ipairs(SynSummoner:strtok(x:lower(), " ")) do
-			if y ~= '' and not SynSummoner.TriggerWords[y] then
-				SynSummoner.TriggerWords[y] = 1
+		for _, y in ipairs(self:strtok(x:lower(), " ")) do
+			if y ~= '' and not self.TriggerWords[y] then
+				self.TriggerWords[y] = 1
 				table.insert(words, y)
 			end
 		end
 	end
-	local level = UnitLevel('player')
-	if found and (forced or (level > 20 and level < 44)) then
-		local zone = (GetSubZoneText() ~= '' and (GetSubZoneText() .. '/') or '') .. GetZoneText()
+	if found and (forced or self:CanDefaultInvite()) then
+		local zone = (GetSubZoneText() ~= '' and GetSubZoneText() ~= GetZoneText() and (GetSubZoneText() .. '/') or '') .. GetZoneText()
 		local text = 'whisper or gchat for summon to ' .. zone .. ': '
 		table.sort(words)
 		local words_str = SynSummoner:strjoin(words, '/')
 		SendChatMessage(text .. words_str, "GUILD")
 	end
+	return found
+end
+function SynSummoner:CanDefaultInvite()
+	if SynSummon1.ForceInvite ~= nil then
+		return SynSummon1.ForceInvite
+	end
+	local level = UnitLevel('player')
+	return (level > 20 and level < 44)
+end
+function SynSummoner:CanEnable(skip_zone)
+	local cls, _ = UnitClass("player")
+	local level = UnitLevel('player')
+	return (skip_zone or SynSummoner:GuildSpam()) and (level <= 5 or (cls == "Warlock" and level >= 20))
+end
+function SynSummoner:Initialise()
+	if not self:CanEnable(true) then
+		return self.EventFrame:UnregisterAllEvents()
+	end
+	if (not SynSummon1) then
+		SynSummon1 = {}
+		SynSummon1.Left = 300
+		SynSummon1.Top = -200
+		SynSummon1.Message = self.DefaultMessage
+	end
+
+	self.Timer = self.EventFrame:CreateAnimationGroup()
+	self.Timer.anim = self.Timer:CreateAnimation()
+	self.Timer.anim:SetDuration(1)
+	self.Timer:SetLooping("REPEAT")
+	self.Timer:SetScript("OnLoop", function(timer, ...)
+		if (SynSummoner.whotosummon) then
+			if (InCombatLockdown()) then
+				for h=1, 20 do
+					SynSummoner.LootFrame.TopGuildFrame[h].Button:Disable()
+				end
+				SynSummoner.LootFrame.TopGuildFrame.Button2:Disable()
+			else
+				SynSummoner.CheckRange()
+				SynSummoner.CheckRaid()
+			end
+		else
+			if (InCombatLockdown()) then
+				for h=1, 20 do
+					SynSummoner.LootFrame.TopGuildFrame[h].Button:Disable()
+				end
+				SynSummoner.LootFrame.TopGuildFrame.Button2:Disable()
+			else
+				SynSummoner.CheckRaid()
+				SynSummoner.Timer:Stop()
+			end
+		end
+	end)
+	self.MakeFrame()
+	self.CheckRaid()
+	C_ChatInfo.RegisterAddonMessagePrefix(SynSummoner.MESSAGE_PREFIX)
+end
+function SynSummoner:UnitInGroup(unit)
+	return UnitInRaid(unit) or UnitInParty(unit)
+end
+function SynSummoner:UnitCannotInvite(unit)
+	if not self:UnitInGroup(unit) then
+		return true
+	end
+	return not (UnitIsGroupLeader(unit) or UnitIsGroupAssistant(unit))
+end
+function SynSummoner:InvAlts()
+	print(SynSummoner:strconcat("Syndicate_Summoner inviting clickers"))
+	if self:UnitCannotInvite("player") then
+		SynSummoner.LeaveGroup()
+	end
+	C_ChatInfo.SendAddonMessage(SynSummoner.MESSAGE_PREFIX, "send_inv", "SAY")
+end
+SynSummoner.LeaveGroup = C_PartyInfo.LeaveParty
+if not SynSummoner.LeaveGroup then
+	SynSummoner.LeaveGroup = LeaveParty
 end
 
 SynSummoner.EventFrame = CreateFrame("Frame")
@@ -354,78 +450,89 @@ SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_GUILD")
 SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_WHISPER")
 SynSummoner.EventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 SynSummoner.EventFrame:RegisterEvent("ZONE_CHANGED")
-SynSummoner.EventFrame:SetScript("OnEvent", function(self, event, ...)
+SynSummoner.EventFrame:RegisterEvent("PARTY_INVITE_REQUEST")
+SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_SAY")
+SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_ADDON")
+SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
+	local self = SynSummoner
 	if (event=="ADDON_LOADED") then
 		local arg1 = ...;
 		if (arg1 == "Syndicate_Summoner") then
-			local playerClass, _ = UnitClass("player")
-			if (playerClass ~= "Warlock") then
-				return SynSummoner.EventFrame:UnregisterAllEvents()
+			self:Initialise()
+		end
+		return
+	end
+	if event == "CHAT_MSG_ADDON" then
+		local prefix, text, channel, sender = ...
+		local sname, _ = strsplit("-", sender)
+		if prefix ~= self.MESSAGE_PREFIX or sname == UnitName('player') then
+			return
+		end
+		if text == "inv" and channel == "WHISPER" and not self:UnitInGroup(sname) then
+			print(self:strconcat("Syndicate_Summoner inviting clicker ", sname))
+			InviteUnit(sender)
+		end
+		if text == "send_inv" and channel == "SAY" and self:CanEnable() then
+			if self:UnitCannotInvite(sname) and GetNumGroupMembers() > 1 then
+				self.LeaveGroup()
 			end
-			if (not SynSummon1) then
-				SynSummon1 = {}
-				SynSummon1.Left = 300
-				SynSummon1.Top = -200
-				SynSummon1.Message = SynSummoner.DefaultMessage
-			end
-
-			SynSummoner.Timer = SynSummoner.EventFrame:CreateAnimationGroup()
-			SynSummoner.Timer.anim = SynSummoner.Timer:CreateAnimation()
-			SynSummoner.Timer.anim:SetDuration(1)
-			SynSummoner.Timer:SetLooping("REPEAT")
-			SynSummoner.Timer:SetScript("OnLoop", function(timer, ...)
-				if (SynSummoner.whotosummon) then
-					for k, v in pairs(SynSummoner.whotosummon) do
-						SynSummoner.whotosummon[k] =  v + 1
-					end
-					if (InCombatLockdown()) then
-						for h=1, 20 do
-							SynSummoner.LootFrame.TopGuildFrame[h].Button:Disable()
-						end
-						SynSummoner.LootFrame.TopGuildFrame.Button2:Disable()
-					else
-						SynSummoner.CheckRange()
-						SynSummoner.CheckRaid()
-					end
-				else
-					if (InCombatLockdown()) then
-						for h=1, 20 do
-							SynSummoner.LootFrame.TopGuildFrame[h].Button:Disable()
-						end
-						SynSummoner.LootFrame.TopGuildFrame.Button2:Disable()
-					else
-						SynSummoner.CheckRaid()
-						SynSummoner.Timer:Stop()
-					end
-				end
-			end)
-			SynSummoner.MakeFrame()
-			SynSummoner.CheckRaid()
+			C_ChatInfo.SendAddonMessage(self.MESSAGE_PREFIX, "inv", "WHISPER", sender)
+		else
+			return
 		end
 	end
-	if SynSummoner:starts_with(event, "ZONE_CHANGED") then
-		SynSummoner:GuildSpam()
+	-- accept invite requests if I am level 5 or lower and in a summoning keyword zone
+	if event == "PARTY_INVITE_REQUEST" then
+		local level = UnitLevel('player')
+		if level <= 5 and self:CanEnable() then
+			AcceptGroup()
+			print(self:strconcat("Syndicate_Summoner accepting group invite"))
+			StaticPopup_Hide("PARTY_INVITE")
+		end
+		return
 	end
-	if SynSummoner:starts_with(event, "CHAT_MSG") then
+	if event == "CHAT_MSG_SAY" then
+		local msg, sender = ...
+		msg = msg:lower()
+		if msg == self.MESSAGE_INV_TEXT or msg:find(self.MESSAGE_INV_TEXT) then
+			C_ChatInfo.SendAddonMessage(self.MESSAGE_PREFIX, "inv", "WHISPER", sender)
+		end
+		return
+	end
+	if self:starts_with(event, "ZONE_CHANGED") then
+		self:GuildSpam()
+		return
+	end
+	if self:starts_with(event, "CHAT_MSG") then
 		local arg1, arg2 = ...;
 		local text = arg1 and arg1:lower() or ''
-		if SynSummoner.BakedWords[text] or SynSummoner.TriggerWords[text] then
-			if event == 'CHAT_MSG_GUILD' or event == 'CHAT_MSG_WHISPER' then
+		local cls, _ = UnitClass("player")
+		if cls == 'Warlock' and (self.BakedWords[text] or self.TriggerWords[text]) then
+			local sname, _ = strsplit("-", arg2)
+			print(self:strconcat("Syndicate_Summoner inviting ", sname))
+			if (event == 'CHAT_MSG_GUILD' or event == 'CHAT_MSG_WHISPER') and self:CanDefaultInvite() then
 				if not IsInRaid() and GetNumGroupMembers() == 5 then
 					ConvertToRaid()
 				end
 				InviteUnit(arg2)
 			end
+			-- teleport sound
+			PlaySound(3226, "Master", false)
 
-			local zname, _ = strsplit("-",arg2)
-			if (not SynSummoner.whotosummon) then
-				SynSummoner.whotosummon = {}
+			if (not self.whotosummon) then
+				self.whotosummon = {}
 			end
-			SynSummoner.whotosummon[zname] = 0
-			SynSummoner.Timer:Play()
+			if not self.whotosummon[sname] then
+				self.whotosummon[sname] = GetTime()
+			end
+			self.Timer:Play()
 		end
+		return
 	end
 end)
+
+-- C_ChatInfo.RegisterAddonMessagePrefix(SynSummoner.MESSAGE_PREFIX)
+-- C_ChatInfo.SendAddonMessage(SynSummoner.MESSAGE_PREFIX, "Hello world!", "SAY")
 
 function SynSummoner:slice(tbl, first, last, step)
   local sliced = {}
@@ -448,10 +555,20 @@ SlashCmdList.SYNSUMM = function(input)
 		if SynSummon1.Message == '' then
 			SynSummon1.Message = SynSummoner.DefaultMessage
 		end
+	elseif bits[1] == 'c' or bits[1] == 'ci' or bits[1] == 'clicker' or bits[1] == 'click' or bits[1] == 'clickinv' or bits[1] == 'inv' then
+		SynSummoner:InvAlts()
 	elseif bits[1] == 'guild' then
 		SynSummoner:GuildSpam(true)
+	elseif bits[1] == 'inviter' then
+		SynSummon1.ForceInvite = not SynSummon1.ForceInvite
+		if bits[2] == 'default' or bits[2] == 'nil' then
+			SynSummon1.ForceInvite = nil
+		end
+		print(SynSummoner:strconcat("Autoinviter is now ", SynSummon1.ForceInvite))
 	else
 		print(SynSummoner:strconcat("Guild spam: /synsum guild"))
 		print(SynSummoner:strconcat("Summon message change: /synsum message summon that guy %t"))
+		print(SynSummoner:strconcat("Toggle autoinviter: /synsum inviter"))
+		print(SynSummoner:strconcat("Invite nearby clickers with addon: /synsum clickinv"))
 	end
 end
