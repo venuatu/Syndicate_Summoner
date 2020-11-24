@@ -17,7 +17,7 @@ SynSummoner.ZoneWords = {
     ['Felwood'] = {'fel', 'sf', 'songflower', 'song',},
     ['Gates of Ahn\'Qiraj'] = {'aq', 'aq40', 'aq20', 'ahnqiraj', 'sili'},
     ['Orgrimmar'] = {'org'},
-    ['Stormwind'] = {'sw'},
+    ['Stormwind City'] = {'sw'},
     ['Plaguewood'] = {'epl', 'nax', 'naxx', 'naxxramas', 'pl'},
     ['Westfall'] = {'wf', 'sent', 'sentinelhill'},
 }
@@ -370,7 +370,7 @@ function SynSummoner:CanDefaultInvite()
 		return SynSummon1.ForceInvite
 	end
 	local level = UnitLevel('player')
-	return (level > 20 and level < 44)
+	return (level >= 20 and level < 44)
 end
 function SynSummoner:CanEnable(skip_zone)
 	local cls, _ = UnitClass("player")
@@ -378,6 +378,11 @@ function SynSummoner:CanEnable(skip_zone)
 	return (skip_zone or SynSummoner:GuildSpam()) and (level <= 5 or (cls == "Warlock" and level >= 20))
 end
 function SynSummoner:Initialise()
+	if self.INITIALISED then
+		return
+	end
+	self.INITIALISED = true
+
 	if not self:CanEnable(true) then
 		return self.EventFrame:UnregisterAllEvents()
 	end
@@ -500,6 +505,7 @@ SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
 		return
 	end
 	if self:starts_with(event, "ZONE_CHANGED") then
+		self:Initialise()
 		self:GuildSpam()
 		return
 	end
@@ -514,7 +520,9 @@ SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
 				if not IsInRaid() and GetNumGroupMembers() == 5 then
 					ConvertToRaid()
 				end
-				InviteUnit(arg2)
+				InviteUnit(sname)
+			else
+				print(self:strconcat("Syndicate_Summoner ignore invite ", sname))
 			end
 			-- teleport sound
 			PlaySound(3226, "Master", false)
