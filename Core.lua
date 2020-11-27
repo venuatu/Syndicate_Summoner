@@ -423,6 +423,7 @@ function SynSummoner:Initialise()
 	self.MakeFrame()
 	self.CheckRaid()
 	C_ChatInfo.RegisterAddonMessagePrefix(SynSummoner.MESSAGE_PREFIX)
+	self:GuildSpam()
 end
 function SynSummoner:UnitInGroup(unit)
 	return UnitInRaid(unit) or UnitInParty(unit)
@@ -447,17 +448,18 @@ end
 
 SynSummoner.EventFrame = CreateFrame("Frame")
 SynSummoner.EventFrame:RegisterEvent("ADDON_LOADED")
+SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_ADDON")
+SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_GUILD")
 SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_PARTY")
 SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_PARTY_LEADER")
 SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_RAID")
 SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_RAID_LEADER")
-SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_GUILD")
-SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_WHISPER")
-SynSummoner.EventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-SynSummoner.EventFrame:RegisterEvent("ZONE_CHANGED")
-SynSummoner.EventFrame:RegisterEvent("PARTY_INVITE_REQUEST")
 SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_SAY")
-SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_ADDON")
+SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_SYSTEM")
+SynSummoner.EventFrame:RegisterEvent("CHAT_MSG_WHISPER")
+SynSummoner.EventFrame:RegisterEvent("PARTY_INVITE_REQUEST")
+SynSummoner.EventFrame:RegisterEvent("ZONE_CHANGED")
+SynSummoner.EventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
 	local self = SynSummoner
 	if (event=="ADDON_LOADED") then
@@ -507,6 +509,15 @@ SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
 	if self:starts_with(event, "ZONE_CHANGED") then
 		self:Initialise()
 		self:GuildSpam()
+		return
+	end
+	if event == "CHAT_MSG_SYSTEM" then
+		local arg1 = ...;
+		local text = arg1 and arg1:lower() or ''
+		if self:ends_with(text, 'is already in a group.') then
+			local bits = self:strtok(text, ' ')
+			SendChatMessage("You're already in a group.", "WHISPER", nil, bits[1])
+		end
 		return
 	end
 	if self:starts_with(event, "CHAT_MSG") then
