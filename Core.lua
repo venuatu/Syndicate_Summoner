@@ -514,9 +514,10 @@ SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
 	if event == "CHAT_MSG_SYSTEM" then
 		local arg1 = ...;
 		local text = arg1 and arg1:lower() or ''
-		if self:ends_with(text, 'is already in a group.') then
-			local bits = self:strtok(text, ' ')
-			SendChatMessage("You're already in a group.", "WHISPER", nil, bits[1])
+		local bits = self:strtok(text, ' ')
+		local name = bits[1]
+		if self:ends_with(text, 'is already in a group.') and not SynSummoner:UnitInGroup(name) then
+			SendChatMessage("Drop your group and ask again to join.", "WHISPER", nil, name)
 		end
 		return
 	end
