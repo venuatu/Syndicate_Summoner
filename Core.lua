@@ -551,11 +551,11 @@ SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
 		if cls == 'Warlock' and (self.BakedWords[text] or self.TriggerWords[text]) then
 			local sname, _ = strsplit("-", arg2)
 			if self:CanDefaultInvite() then
-				print(self:strconcat("Syndicate_Summoner inviting ", sname))
 				if (event == 'CHAT_MSG_GUILD' or event == 'CHAT_MSG_WHISPER') and
 						(not SynSummon1.GuildInvite or SynSummoner.Guildies[sname])
 						then
-					if not IsInRaid() and GetNumGroupMembers() == 5 then
+					print(self:strconcat("Syndicate_Summoner inviting ", sname))
+					if not IsInRaid() and GetNumGroupMembers() >= 4 then
 						ConvertToRaid()
 					end
 					InviteUnit(sname)
@@ -566,7 +566,7 @@ SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
 				if not self.whotosummon[sname] then
 					self.whotosummon[sname] = GetTime()
 				end
-				if SynSummoner.last_flash == nil or (time() - SynSummoner.last_flash) > 15 then
+				if (SynSummon1.Flash == nil or SynSummon1.Flash) and (SynSummoner.last_flash == nil or (time() - SynSummoner.last_flash) > 15) then
 					SynSummoner.last_flash = time()
 					-- teleport sound
 					PlaySound(3226, "Master", false)
@@ -606,23 +606,30 @@ SlashCmdList.SYNSUMM = function(input)
 		if SynSummon1.Message == '' then
 			SynSummon1.Message = SynSummoner.DefaultMessage
 		end
+		print(SynSummoner:strconcat("Message is now: ", SynSummon1.Message))
 	elseif bits[1] == 'c' or bits[1] == 'ci' or bits[1] == 'clicker' or bits[1] == 'click' or bits[1] == 'clickinv' or bits[1] == 'inv' then
 		SynSummoner:InvAlts()
 	elseif bits[1] == 'guild' then
 		SynSummoner:GuildSpam(true)
 	elseif bits[1] == 'guildinviter' then
 		SynSummon1.GuildInvite = not SynSummon1.GuildInvite
+		print(SynSummoner:strconcat("Guild inviter is now: ", SynSummon1.GuildInvite))
+	elseif bits[1] == 'flash' then
+		SynSummon1.Flash = not SynSummon1.Flash
+		print(SynSummoner:strconcat("Flash is now: ", SynSummon1.Flash))
 	elseif bits[1] == 'inviter' then
 		SynSummon1.ForceInvite = not SynSummon1.ForceInvite
 		if bits[2] == 'default' or bits[2] == 'nil' then
 			SynSummon1.ForceInvite = nil
 		end
-		print(SynSummoner:strconcat("Autoinviter is now ", SynSummon1.ForceInvite))
+		print(SynSummoner:strconcat("Autoinviter is now: ", SynSummon1.ForceInvite))
 	else
+		print(SynSummoner:strconcat("Syndicate_Summoner"))
 		print(SynSummoner:strconcat("Guild spam: /synsum guild"))
-		print(SynSummoner:strconcat("Summon message change: /synsum message summon that guy %t"))
+		print(SynSummoner:strconcat("Change summon message: /synsum message summon that guy %t"))
 		print(SynSummoner:strconcat("Toggle autoinviter: /synsum inviter"))
 		print(SynSummoner:strconcat("Toggle guild only inviting: /synsum guildinviter"))
+		print(SynSummoner:strconcat("Toggle flashing/sounds: /synsum flash"))
 		print(SynSummoner:strconcat("Invite nearby clickers with addon: /synsum clickinv"))
 	end
 end
