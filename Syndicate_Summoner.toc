@@ -1,8 +1,8 @@
-## Interface: 11305
+## Interface: 11307
 
 ## Title: Syndicate_Summoner
 ## Notes: Warlock Summon Helper
 ## Author: Pawthorn / Zyrrael (Consequence-Summons)
-## Version: 1.0.4
+## Version: 1.0.5
 ## SavedVariables: SynSummon1
 Core.lua
