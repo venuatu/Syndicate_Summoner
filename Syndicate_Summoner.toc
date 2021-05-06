@@ -3,6 +3,6 @@
 ## Title: Syndicate_Summoner
 ## Notes: Warlock Summon Helper
 ## Author: Pawthorn / Zyrrael (Consequence-Summons)
-## Version: 1.0.5
+## Version: 1.0.6
 ## SavedVariables: SynSummon1
 Core.lua

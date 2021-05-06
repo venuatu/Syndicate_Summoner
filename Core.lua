@@ -61,7 +61,7 @@ function SynSummoner.MakeFrame()
 	end)
 	SynSummoner.LootFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", SynSummon1.Left, SynSummon1.Top)
 
-	SynSummoner.LootFrame["TopGuildFrame"] = CreateFrame("frame", "LootPasserTopFrame", SynSummoner.LootFrame)
+	SynSummoner.LootFrame["TopGuildFrame"] = CreateFrame("frame", "LootPasserTopFrame", SynSummoner.LootFrame, BackdropTemplateMixin and 'BackdropTemplate')
 	SynSummoner.LootFrame["TopGuildFrame"]:SetWidth(100)
 	SynSummoner.LootFrame["TopGuildFrame"]:SetHeight(70)
 	SynSummoner.LootFrame["TopGuildFrame"]:SetPoint("TOPLEFT", SynSummoner.LootFrame, "TOPLEFT",0,0)
@@ -167,7 +167,7 @@ function SynSummoner.MakeFrame()
 
 
 
-		SynSummoner.LootFrame.TopGuildFrame[h].Time = CreateFrame("frame", "LootPasserTopFramett"..h, SynSummoner.LootFrame.TopGuildFrame)
+		SynSummoner.LootFrame.TopGuildFrame[h].Time = CreateFrame("frame", "LootPasserTopFramett"..h, SynSummoner.LootFrame.TopGuildFrame, BackdropTemplateMixin and 'BackdropTemplate')
 		SynSummoner.LootFrame.TopGuildFrame[h].Time:SetWidth(50)
 		SynSummoner.LootFrame.TopGuildFrame[h].Time:SetHeight(25)
 		SynSummoner.LootFrame.TopGuildFrame[h].Time:SetPoint("TOPLEFT", SynSummoner.LootFrame.TopGuildFrame, "TOPRIGHT",0,-((h*25)-15))
@@ -370,7 +370,7 @@ function SynSummoner:GuildSpam(forced)
 			end
 		end
 	end
-	if found and (forced or self:CanDefaultInvite()) then
+	if found and (forced or self:CanDefaultInvite()) and (SynSummon1.AutoSpam == true or SynSummon1.AutoSpam == nil) then
 		local zone = (GetSubZoneText() ~= '' and GetSubZoneText() ~= GetZoneText() and (GetSubZoneText() .. '/') or '') .. GetZoneText()
 		local text = 'whisper or gchat for summon to ' .. zone .. ': '
 		table.sort(words)
@@ -532,6 +532,8 @@ SynSummoner.EventFrame:SetScript("OnEvent", function(_, event, ...)
 	if self:starts_with(event, "ZONE_CHANGED") then
 		self:Initialise()
 		self:GuildSpam()
+		SynSummoner.EventFrame:UnregisterEvent("ZONE_CHANGED")
+		SynSummoner.EventFrame:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
 		return
 	end
 	if event == "CHAT_MSG_SYSTEM" then
@@ -614,6 +616,9 @@ SlashCmdList.SYNSUMM = function(input)
 	elseif bits[1] == 'guildinviter' then
 		SynSummon1.GuildInvite = not SynSummon1.GuildInvite
 		print(SynSummoner:strconcat("Guild inviter is now: ", SynSummon1.GuildInvite))
+	elseif bits[1] == 'autospam' then
+		SynSummon1.AutoSpam = not SynSummon1.AutoSpam
+		print(SynSummoner:strconcat("Auto spam is now: ", SynSummon1.AutoSpam))
 	elseif bits[1] == 'flash' then
 		SynSummon1.Flash = not SynSummon1.Flash
 		print(SynSummoner:strconcat("Flash is now: ", SynSummon1.Flash))
@@ -626,6 +631,7 @@ SlashCmdList.SYNSUMM = function(input)
 	else
 		print(SynSummoner:strconcat("Syndicate_Summoner"))
 		print(SynSummoner:strconcat("Guild spam: /synsum guild"))
+		print(SynSummoner:strconcat("Toggle auto spam: /synsum autospam"))
 		print(SynSummoner:strconcat("Change summon message: /synsum message summon that guy %t"))
 		print(SynSummoner:strconcat("Toggle autoinviter: /synsum inviter"))
 		print(SynSummoner:strconcat("Toggle guild only inviting: /synsum guildinviter"))

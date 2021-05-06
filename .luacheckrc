@@ -31,6 +31,7 @@ globals = {
     "DBM",
 
     -- blizz
+    "BackdropTemplateMixin",
     "ChatEdit_InsertLink",
     "FlashClientIcon",
     "GameTooltip",
